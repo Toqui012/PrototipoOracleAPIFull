@@ -9,6 +9,10 @@ using PrototipoOracleAPIFull.DTO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using PrototipoOracleAPIFull.Classes;
+using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Protocols;
+using Oracle.ManagedDataAccess.Client;
+using System.Data;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -30,41 +34,129 @@ namespace PrototipoOracleAPIFull.Controllers
         }
 
 
-        //Listado de Regiones
-        [HttpGet]
+        ////Listado de Regiones
+        //[HttpGet]
 
+        //public ActionResult GetRegion()
+        //{
+        //    try
+        //    {
+        //       using(ModelContext db = new ModelContext(config.GetConnectionString("Acceso"))) 
+        //       {
+        //            List<RegionDTO> response = db.Regions.Select(reg => new RegionDTO(reg)).ToList();
+        //            if (response.Count == 0)
+        //            {
+        //                return NotFound(new Response()
+        //                {
+        //                    Data = response,
+        //                    Errors = new List<Error>()
+        //                    {
+        //                        new Error()
+        //                        {
+        //                            Id = 1,
+        //                            Status = "Not Found",
+        //                            Code = 404 ,
+        //                            Title = "No Data Found",
+        //                            Detail = "There is no data on database"
+        //                        }
+        //                    }
+        //                });
+        //            }
+        //            else
+        //            {
+        //                return Ok(new Response() { Data = response });
+        //            }
+        //       }
+        //    }
+        //    catch (System.Exception err)
+        //    {
+        //        Response response = new Response();
+        //        response.Errors.Add(new Error()
+        //        {
+        //            Id = 1,
+        //            Status = "Internal Server Error",
+        //            Code = 500,
+        //            Title = err.Message,
+        //            Detail = err.InnerException != null ? err.InnerException.ToString() : err.Message
+        //        });
+        //        return StatusCode(500, response);
+        //    }
+        //}
+
+        [HttpGet]
         public ActionResult GetRegion()
         {
             try
             {
-               using(ModelContext db = new ModelContext(config.GetConnectionString("Acceso"))) 
-               {
-                    List<RegionDTO> response = db.Regions.Select(reg => new RegionDTO(reg)).ToList();
-                    if (response.Count == 0)
+                using (ModelContext db = new ModelContext(config.GetConnectionString("Acceso")))
+                {
+                    //List<RegionDTO> response = db.Regions.Select(reg => new RegionDTO(reg)).ToList();
+                    //if (response.Count == 0)
+                    //{
+                    //    return NotFound(new Response()
+                    //    {
+                    //        Data = response,
+                    //        Errors = new List<Error>()
+                    //        {
+                    //            new Error()
+                    //            {
+                    //                Id = 1,
+                    //                Status = "Not Found",
+                    //                Code = 404 ,
+                    //                Title = "No Data Found",
+                    //                Detail = "There is no data on database"
+                    //            }
+                    //        }
+                    //    });
+                    //}
+                    //else
+                    //{
+                    //    return Ok(new Response() { Data = response });
+                    //}
+                    using (OracleConnection sql = new OracleConnection(config.GetConnectionString("Acceso")))
                     {
-                        return NotFound(new Response()
+                        OracleDataAdapter objAdapter = new OracleDataAdapter();
+                        OracleCommand objSelectCmd = new OracleCommand();
+                        objSelectCmd.Connection = sql;
+                        objSelectCmd.CommandText = "CRUDHR.GetRegion";
+                        objSelectCmd.CommandType = CommandType.StoredProcedure;
+                        objSelectCmd.Parameters.Add("cur_region", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
+                        objAdapter.SelectCommand = objSelectCmd;
+
+                        try
                         {
-                            Data = response,
-                            Errors = new List<Error>()
+                            DataTable dtRegion = new DataTable();
+                            List<Object> dtRegion2 = new List<Object>();
+                            RegionDTO regionToAdd = new RegionDTO();
+                            objAdapter.Fill(dtRegion);
+                            
+
+                            foreach (DataRow row in dtRegion.Rows)
                             {
-                                new Error()
-                                {
-                                    Id = 1,
-                                    Status = "Not Found",
-                                    Code = 404 ,
-                                    Title = "No Data Found",
-                                    Detail = "There is no data on database"
-                                }
+                                dtRegion2.Add(new RegionDTO() { RegionId = (decimal)row["REGION_ID"], RegionName = row["REGION_NAME"].ToString() });
                             }
-                        });
+                            return Ok(new Response() { Data = dtRegion2 });
+
+                        }
+                        catch (Exception err)
+                        {
+                            Response response = new Response();
+                            response.Errors.Add(new Error()
+                            {
+                                Id = 1,
+                                Status = "Internal Server Error",
+                                Code = 500,
+                                Title = err.Message,
+                                Detail = err.InnerException != null ? err.InnerException.ToString() : err.Message
+                            });
+                            return StatusCode(500, response);
+                        }
                     }
-                    else
-                    {
-                        return Ok(new Response() { Data = response });
-                    }
-               }
+
+                   
+                }
             }
-            catch (System.Exception err)
+            catch (Exception err)
             {
                 Response response = new Response();
                 response.Errors.Add(new Error()
